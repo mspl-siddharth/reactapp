@@ -1,13 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../business/authService";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../store/userSlice";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const user = authService.getUser();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
+  console.log(user);
 
   const handleLogout = () => {
-    authService.logout();
+    dispatch(logout());
     navigate("/");
   };
 
@@ -17,15 +20,16 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Dashboard
         </h1>
-
         <div className="flex flex-col items-center">
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">
-            Welcome, {user?.name || user?.username}!
+          <h2 className="text-xl font-semibold text-gray-700 mb-6">
+            Welcome, {user?.userId}!
           </h2>
           <p className="text-gray-500 mb-6">
-            Username: <span className="font-medium">{user?.username}</span>
+            name: <span className="font-medium">{user?.name}</span>
           </p>
-
+          <p className="text-gray-500 mb-6">
+            email: <span className="font-medium">{user?.email}</span>
+          </p>
           <button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-full shadow transition-all duration-300"

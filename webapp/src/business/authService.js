@@ -1,48 +1,74 @@
+import Axios from "../axios";
+
 export const authService = {
-  createAccount({ username, password, name }) {
-    if (!username || !password || !name) {
-      throw new Error("All fields are required");
+  async register({ name, email, password }) {
+    if (!name || !email || !password) {
+      throw new Error("all fields are required");
     }
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const response = await Axios.post("/auth/register", {
+      name,
+      email,
+      password,
+    });
 
-    const existingUser = users.find((user) => user.username === username);
-    if (existingUser) {
-      throw new Error("Username already exists");
+    if (!response.data.success) {
+      throw new Error(response.data.message);
     }
 
-    const newUser = { username, password, name };
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
-
-    return newUser;
+    return response.data;
   },
 
-  login({ username, password }) {
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-
-    const user = users.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (!user) {
-      throw new Error("Invalid username or password");
+  async login({ email, password }) {
+    if (!email || !password) {
+      throw new Error("email and password are required");
     }
 
-    localStorage.setItem("user", JSON.stringify(user));
-    return user;
+    const response = await Axios.post("/auth/login", { email, password });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message);
+    }
+
+    const { token, userData, message } = response.data;
+
+    const user = {
+      userId: userData._id,
+      name: userData.name,
+      email: userData.email,
+    };
+
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: "LOGIN_SUCCESS",
+        user,
+        token,
+      })
+    );
+
+    localStorage.setItem("token", JSON.stringify(token));
+    return { user, token, message };
+  },
+
+  async getCurrentUser(token) {
+    const response = await Axios.post("/auth/get-current-user", { token });
+
+    if (!response.data.success) {
+      throw new Error("failed to fetch user data");
+    }
+    console.log(response);
+    return response.data.user;
   },
 
   logout() {
-    localStorage.removeItem("user");
+    localStorage.removeItem("token");
   },
 
-  getUser() {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+  getToken() {
+    return JSON.parse(localStorage.getItem("token"));
   },
 
   isAuthenticated() {
-    return !!localStorage.getItem("user");
+    return !!localStorage.getItem("token");
   },
 };

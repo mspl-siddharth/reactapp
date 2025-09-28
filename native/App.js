@@ -1,28 +1,23 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import BiometricLogin from './src/screens/BiometricLogin';
+import WebViewScreen from './src/screens/WebViewScreen';
+
+const Stack = createNativeStackNavigator();
 
 const App = () => {
   return (
-    <View style={styles.container}>
-      <WebView
-        source={{ uri: 'http://192.168.10.133:3000' }}
-        javaScriptEnabled={true}
-        originWhitelist={['*']}
-        onMessage={event => {
-          const user = JSON.parse(event.nativeEvent.data);
-          console.log(user);
-        }}
-        style={{ flex: 1 }}
-      />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="BiometricLogin"
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="BiometricLogin" component={BiometricLogin} />
+        <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;
