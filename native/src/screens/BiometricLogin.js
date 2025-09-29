@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,66 +10,47 @@ import {
 import { biometricService } from '../services/biometricService';
 
 const BiometricLogin = ({ navigation }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
-  const [hasStoredCredentials, setHasStoredCredentials] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [hasCredentials, setHasCredentials] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      try {
-        const available = await biometricService.isBiometricAvailable();
-        setIsBiometricAvailable(available);
+      const available = await biometricService.isBiometricAvailable();
+      setBiometricAvailable(available);
 
-        const credentials = await biometricService.getCredentials();
-        setHasStoredCredentials(!!credentials);
+      const credentials = await biometricService.getCredentials();
+      setHasCredentials(!!credentials);
 
-        if (available && credentials) {
-          const isAuthenticated = await biometricService.authenticate();
-          if (isAuthenticated) {
-            navigation.replace('WebViewScreen');
-            return;
-          }
-        }
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error initializing biometric login:', error);
-        setIsLoading(false);
+      if (available && credentials) {
+        const authenticated = await biometricService.authenticate();
+        if (authenticated) navigation.replace('WebViewScreen');
       }
-    };
 
+      setLoading(false);
+    };
     init();
   }, []);
 
   const handleBiometricLogin = async () => {
-    setIsLoading(true);
-    try {
-      if (!hasStoredCredentials) {
-        Alert.alert(
-          'No Saved Credentials',
-          'Please login with Email & Password first.',
-        );
-        return;
-      }
-
-      const isAuthenticated = await biometricService.authenticate();
-      if (isAuthenticated) {
-        navigation.replace('WebViewScreen');
-      } else {
-        Alert.alert('Authentication Failed', 'Please try again.');
-      }
-    } catch (error) {
-      console.error('Biometric login error:', error);
-    } finally {
-      setIsLoading(false);
+    setLoading(true);
+    if (!hasCredentials) {
+      Alert.alert(
+        'No Saved Credentials',
+        'Please login with Email & Password first.',
+      );
+      setLoading(false);
+      return;
     }
+    const authenticated = await biometricService.authenticate();
+    if (authenticated) navigation.replace('WebViewScreen');
+    else Alert.alert('Authentication Failed', 'Please try again.');
+    setLoading(false);
   };
 
-  const handleWebViewLogin = () => {
-    navigation.replace('WebViewScreen');
-  };
+  const handleWebViewLogin = () => navigation.replace('WebViewScreen');
 
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -81,14 +62,13 @@ const BiometricLogin = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.subtitle}>Choose your login method</Text>
 
-      {isBiometricAvailable && (
+      {biometricAvailable && hasCredentials && (
         <TouchableOpacity
           style={[styles.button, styles.biometricButton]}
           onPress={handleBiometricLogin}
         >
-          <Text style={styles.buttonText}>Login with Biometric</Text>
+          <Text style={styles.buttonText}>Login with Biometrics</Text>
         </TouchableOpacity>
       )}
 

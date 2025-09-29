@@ -10,7 +10,7 @@ dotenv.config();
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://192.168.1.96:3000",
+    origin: "http://192.168.10.113:3000",
     credentials: true,
   })
 );

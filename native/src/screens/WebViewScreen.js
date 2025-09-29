@@ -1,4 +1,3 @@
-// src/screens/WebViewScreen.js
 import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, BackHandler, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -27,29 +26,15 @@ const WebViewScreen = ({ navigation }) => {
       const data = JSON.parse(event.nativeEvent.data);
 
       if (data.type === 'LOGIN_SUCCESS') {
-        const saved = await biometricService.saveCredentials({
+        await biometricService.saveCredentials({
           user: data.user,
           token: data.token,
         });
-
-        if (saved) {
-          Alert.alert(
-            'Biometric Login Enabled',
-            'You can now login with biometrics next time.',
-            [
-              {
-                text: 'OK',
-                onPress: () => navigation.replace('BiometricLogin'),
-              },
-            ],
-          );
-        } else {
-          Alert.alert(
-            'Biometric Save Failed',
-            'Could not save credentials for biometric login. Please try again or use email login.',
-            [{ text: 'OK' }],
-          );
-        }
+        Alert.alert(
+          'Login Successful',
+          'You can now use biometric login next time.',
+          [{ text: 'OK', onPress: () => navigation.replace('BiometricLogin') }],
+        );
       }
 
       if (data.type === 'LOGOUT') {
@@ -84,7 +69,6 @@ const WebViewScreen = ({ navigation }) => {
         return response;
       });
     };
-
     const originalRemoveItem = localStorage.removeItem;
     localStorage.removeItem = function(key) {
       if (key === 'token') {
@@ -114,5 +98,4 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   webview: { flex: 1 },
 });
-
 export default WebViewScreen;

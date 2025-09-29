@@ -1,11 +1,13 @@
-// src/services/biometricService.js
-import * as Keychain from 'react-native-keychain';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReactNativeBiometrics from 'react-native-biometrics';
+
+const rnBiometrics = new ReactNativeBiometrics();
 
 export const biometricService = {
   async isBiometricAvailable() {
     try {
-      const biometricType = await Keychain.getSupportedBiometryType();
-      return biometricType !== null;
+      const { available } = await rnBiometrics.isSensorAvailable();
+      return available;
     } catch {
       return false;
     }
@@ -13,15 +15,14 @@ export const biometricService = {
 
   async authenticate() {
     try {
-      const credentials = await Keychain.getGenericPassword({
-        authenticationPrompt: { title: 'Authenticate to login' },
+      const { success } = await rnBiometrics.simplePrompt({
+        promptMessage: 'Authenticate to login',
       });
-      if (!credentials) return false;
+      if (!success) return false;
 
-      const data = JSON.parse(credentials.password);
-      if (!data.user || !data.token) return false;
+      const credentials = await AsyncStorage.getItem('user_credentials');
 
-      return true;
+      return credentials ? true : false;
     } catch {
       return false;
     }
@@ -29,17 +30,8 @@ export const biometricService = {
 
   async saveCredentials(userData) {
     try {
-      if (!userData || !userData.user || !userData.token) return false;
-
-      await Keychain.setGenericPassword(
-        'user_credentials',
-        JSON.stringify(userData),
-        {
-          accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY,
-          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-          authenticationType: Keychain.AUTHENTICATION_TYPE.BIOMETRICS,
-        },
-      );
+      if (!userData?.user || !userData?.token) return false;
+      await AsyncStorage.setItem('user_credentials', JSON.stringify(userData));
       return true;
     } catch {
       return false;
@@ -48,10 +40,8 @@ export const biometricService = {
 
   async getCredentials() {
     try {
-      const credentials = await Keychain.getGenericPassword({
-        authenticationPrompt: { title: 'Authenticate to login' },
-      });
-      return credentials ? JSON.parse(credentials.password) : null;
+      const credentials = await AsyncStorage.getItem('user_credentials');
+      return credentials ? JSON.parse(credentials) : null;
     } catch {
       return null;
     }
@@ -59,7 +49,7 @@ export const biometricService = {
 
   async removeCredentials() {
     try {
-      await Keychain.resetGenericPassword();
+      await AsyncStorage.removeItem('user_credentials');
       return true;
     } catch {
       return false;
