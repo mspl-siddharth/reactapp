@@ -6,10 +6,11 @@ const rnBiometrics = new ReactNativeBiometrics();
 export const biometricService = {
   async isBiometricAvailable() {
     try {
-      const { available } = await rnBiometrics.isSensorAvailable();
-      return available;
+      const { available, biometryType } =
+        await rnBiometrics.isSensorAvailable();
+      return { available, biometryType };
     } catch {
-      return false;
+      return { available: false, biometryType: null };
     }
   },
 

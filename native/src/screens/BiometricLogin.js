@@ -11,20 +11,25 @@ import { biometricService } from '../services/biometricService';
 
 const BiometricLogin = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricInfo, setBiometricInfo] = useState({
+    available: false,
+    biometryType: null,
+  });
   const [hasCredentials, setHasCredentials] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      const available = await biometricService.isBiometricAvailable();
-      setBiometricAvailable(available);
+      const info = await biometricService.isBiometricAvailable();
+      setBiometricInfo(info);
 
       const credentials = await biometricService.getCredentials();
       setHasCredentials(!!credentials);
 
-      if (available && credentials) {
+      if (info.available && credentials) {
         const authenticated = await biometricService.authenticate();
-        if (authenticated) navigation.replace('WebViewScreen');
+        if (authenticated && credentials?.token) {
+          navigation.replace('WebViewScreen', { bioToken: credentials.token });
+        }
       }
 
       setLoading(false);
@@ -34,6 +39,7 @@ const BiometricLogin = ({ navigation }) => {
 
   const handleBiometricLogin = async () => {
     setLoading(true);
+
     if (!hasCredentials) {
       Alert.alert(
         'No Saved Credentials',
@@ -42,9 +48,25 @@ const BiometricLogin = ({ navigation }) => {
       setLoading(false);
       return;
     }
-    const authenticated = await biometricService.authenticate();
-    if (authenticated) navigation.replace('WebViewScreen');
-    else Alert.alert('Authentication Failed', 'Please try again.');
+
+    const promptMessage =
+      biometricInfo.biometryType === 'FaceID'
+        ? 'Authenticate with Face ID'
+        : biometricInfo.biometryType === 'TouchID'
+        ? 'Authenticate with Touch ID'
+        : 'Authenticate';
+
+    const authenticated = await biometricService.authenticate(promptMessage);
+
+    if (authenticated) {
+      const credentials = await biometricService.getCredentials();
+      if (credentials?.token) {
+        navigation.replace('WebViewScreen', { bioToken: credentials.token });
+      }
+    } else {
+      Alert.alert('Authentication Failed', 'Please try again.');
+    }
+
     setLoading(false);
   };
 
@@ -63,12 +85,18 @@ const BiometricLogin = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Welcome</Text>
 
-      {biometricAvailable && hasCredentials && (
+      {biometricInfo.available && hasCredentials && (
         <TouchableOpacity
           style={[styles.button, styles.biometricButton]}
           onPress={handleBiometricLogin}
         >
-          <Text style={styles.buttonText}>Login with Biometrics</Text>
+          <Text style={styles.buttonText}>
+            {biometricInfo.biometryType === 'FaceID'
+              ? 'Login with Face ID'
+              : biometricInfo.biometryType === 'TouchID'
+              ? 'Login with Touch ID'
+              : 'Login with Biometrics'}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -91,12 +119,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   title: { fontSize: 32, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 50,
-    textAlign: 'center',
-  },
   button: {
     width: '100%',
     padding: 15,

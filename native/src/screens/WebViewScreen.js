@@ -4,8 +4,19 @@ import { WebView } from 'react-native-webview';
 import { biometricService } from '../services/biometricService';
 import config from '../../constant';
 
-const WebViewScreen = ({ navigation }) => {
+const WebViewScreen = ({ navigation, route }) => {
   const webViewRef = useRef(null);
+  const bioToken = route.params?.bioToken;
+
+  useEffect(() => {
+    if (bioToken && webViewRef.current) {
+      const script = `
+        window.localStorage.setItem('bioToken', '${bioToken}');
+        true;
+      `;
+      webViewRef.current.injectJavaScript(script);
+    }
+  }, [bioToken]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -98,4 +109,5 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   webview: { flex: 1 },
 });
+
 export default WebViewScreen;

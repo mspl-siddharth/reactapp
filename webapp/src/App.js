@@ -11,18 +11,27 @@ function App() {
   const userData = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = authService.getToken();
+      let token = authService.getToken();
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       if (token && !userData.user) {
         try {
           const user = await authService.getCurrentUser(token);
           dispatch(login({ user, token }));
         } catch (err) {
           authService.logout();
+          setAuthError("Token error: Invalid or expired token");
         }
       }
+
       setLoading(false);
     };
 
@@ -32,6 +41,14 @@ function App() {
   if (loading) {
     return (
       <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "50px", color: "red" }}>
+        {authError}
+      </div>
     );
   }
 
@@ -47,7 +64,6 @@ function App() {
           )
         }
       />
-
       <Route
         path="/dashboard"
         element={
@@ -58,7 +74,6 @@ function App() {
           )
         }
       />
-
       <Route path="/register" element={<Register />} />
     </Routes>
   );
