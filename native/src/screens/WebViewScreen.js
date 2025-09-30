@@ -1,22 +1,23 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, BackHandler, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { biometricService } from '../services/biometricService';
 import config from '../../constant';
 
-const WebViewScreen = ({ navigation, route }) => {
+const WebViewScreen = ({ navigation }) => {
   const webViewRef = useRef(null);
-  const bioToken = route.params?.bioToken;
+  const [injectedjs, setInjectedjs] = useState('true;');
 
-  useEffect(() => {
-    if (bioToken && webViewRef.current) {
-      const script = `
-        window.localStorage.setItem('bioToken', '${bioToken}');
-        true;
-      `;
-      webViewRef.current.injectJavaScript(script);
+  const loadToken = async () => {
+    const credentials = await biometricService.getCredentials();
+    if (credentials?.token) {
+      setInjectedjs(
+        `window.localStorage.setItem('bioToken', '${credentials.token}'); true;`,
+      );
     }
-  }, [bioToken]);
+  };
+
+  loadToken();
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -29,6 +30,7 @@ const WebViewScreen = ({ navigation, route }) => {
         return true;
       },
     );
+
     return () => backHandler.remove();
   }, []);
 
@@ -44,7 +46,7 @@ const WebViewScreen = ({ navigation, route }) => {
         Alert.alert(
           'Login Successful',
           'You can now use biometric login next time.',
-          [{ text: 'OK', onPress: () => navigation.replace('BiometricLogin') }],
+          [{ text: 'OK' }],
         );
       }
 
@@ -57,38 +59,6 @@ const WebViewScreen = ({ navigation, route }) => {
     }
   };
 
-  const injectedJavaScript = `
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      return originalFetch.apply(this, args).then(response => {
-        if (args[0].includes('/auth/login')) {
-          response.clone().json().then(data => {
-            if (data.success && data.token && data.userData) {
-              const user = {
-                userId: data.userData._id,
-                name: data.userData.name,
-                email: data.userData.email
-              };
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'LOGIN_SUCCESS',
-                user,
-                token: data.token
-              }));
-            }
-          });
-        }
-        return response;
-      });
-    };
-    const originalRemoveItem = localStorage.removeItem;
-    localStorage.removeItem = function(key) {
-      if (key === 'token') {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'LOGOUT' }));
-      }
-      return originalRemoveItem.apply(this, arguments);
-    };
-  `;
-
   return (
     <View style={styles.container}>
       <WebView
@@ -98,7 +68,7 @@ const WebViewScreen = ({ navigation, route }) => {
         javaScriptEnabled
         domStorageEnabled
         onMessage={handleWebViewMessage}
-        injectedJavaScript={injectedJavaScript}
+        injectedJavaScript={injectedjs}
         startInLoadingState
       />
     </View>

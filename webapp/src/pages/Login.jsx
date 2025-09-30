@@ -8,7 +8,7 @@ import { login } from "../store/userSlice";
 import { authService } from "../business/authService";
 
 const Login = () => {
-  const [data, setData] = useState({ email: "", password: "" });
+  const [data, setData] = useState({ email: "aa", password: "a" });
   const navigate = useNavigate();
   const dispatch = useDispatch();
 

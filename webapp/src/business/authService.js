@@ -1,3 +1,4 @@
+import { toast } from "react-toastify";
 import Axios from "../axios";
 
 export const authService = {
@@ -62,17 +63,16 @@ export const authService = {
 
   logout() {
     localStorage.removeItem("token");
-    localStorage.removeItem("bioToken");
+    toast.success("Logged out successfully!");
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: "LOGOUT",
+      })
+    );
   },
 
   getToken() {
     let token = JSON.parse(localStorage.getItem("token"));
-    const bioToken = localStorage.getItem("bioToken");
-
-    if (bioToken && (!token || bioToken !== token)) {
-      token = bioToken;
-    }
-
     return token;
   },
 

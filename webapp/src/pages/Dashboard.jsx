@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../store/userSlice";
+import { authService } from "../business/authService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const Dashboard = () => {
   console.log(user);
 
   const handleLogout = () => {
+    authService.logout();
     dispatch(logout());
     navigate("/");
   };

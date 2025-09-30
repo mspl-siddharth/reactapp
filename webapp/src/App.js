@@ -15,8 +15,7 @@ function App() {
 
   useEffect(() => {
     const initAuth = async () => {
-      let token = authService.getToken();
-
+      const token = authService.getToken();
       if (!token) {
         setLoading(false);
         return;
@@ -38,19 +37,16 @@ function App() {
     initAuth();
   }, [userData.user, dispatch]);
 
-  if (loading) {
+  if (loading)
     return (
       <div style={{ textAlign: "center", marginTop: "50px" }}>Loading...</div>
     );
-  }
-
-  if (authError) {
+  if (authError)
     return (
       <div style={{ textAlign: "center", marginTop: "50px", color: "red" }}>
         {authError}
       </div>
     );
-  }
 
   return (
     <Routes>
