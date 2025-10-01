@@ -4,8 +4,9 @@ import { useDispatch, useSelector } from "react-redux";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
-import { login } from "./store/userSlice";
+import { login, logout } from "./store/userSlice";
 import { authService } from "./business/authService";
+import Demo from "./pages/Demo";
 
 function App() {
   const userData = useSelector((state) => state.user);
@@ -26,6 +27,7 @@ function App() {
           const user = await authService.getCurrentUser(token);
           dispatch(login({ user, token }));
         } catch (err) {
+          dispatch(logout());
           authService.logout();
           setAuthError("Token error: Invalid or expired token");
         }
@@ -36,6 +38,19 @@ function App() {
 
     initAuth();
   }, [userData.user, dispatch]);
+
+  useEffect(() => {
+    const handleNativeMessage = (event) => {
+      console.log("native msg:", event.data);
+      if (event.data.type === "AUTH_FAILED") {
+        localStorage.clear();
+        alert("Biometric failed, clearing storage");
+      }
+    };
+
+    window.addEventListener("message", handleNativeMessage);
+    return () => window.removeEventListener("message", handleNativeMessage);
+  }, []);
 
   if (loading)
     return (
@@ -71,6 +86,7 @@ function App() {
         }
       />
       <Route path="/register" element={<Register />} />
+      <Route path="/demo" element={<Demo />} />
     </Routes>
   );
 }

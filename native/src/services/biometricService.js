@@ -14,17 +14,19 @@ export const biometricService = {
     }
   },
 
-  async authenticate() {
+  async authenticate(promptMessage = 'Authenticate to continue') {
     try {
       const { success } = await rnBiometrics.simplePrompt({
-        promptMessage: 'Authenticate to login',
+        promptMessage,
+        cancelButtonText: 'Cancel',
       });
       if (!success) return false;
 
       const credentials = await AsyncStorage.getItem('user_credentials');
-
-      return credentials ? true : false;
-    } catch {
+      return !!credentials;
+    } catch (error) {
+      await AsyncStorage.clear();
+      console.error('Biometric authentication error:', error);
       return false;
     }
   },

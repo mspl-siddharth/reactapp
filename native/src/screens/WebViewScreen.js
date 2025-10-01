@@ -1,23 +1,38 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, BackHandler, Alert } from 'react-native';
+import { View, StyleSheet, BackHandler, Alert, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { sessionService } from '../services/sessionService';
 import { biometricService } from '../services/biometricService';
 import config from '../../constant';
 
 const WebViewScreen = ({ navigation }) => {
   const webViewRef = useRef(null);
   const [injectedjs, setInjectedjs] = useState('true;');
+  const appState = useRef(AppState.currentState);
+  const [isActive, setIsActive] = useState(AppState.currentState === 'active');
 
-  const loadToken = async () => {
-    const credentials = await biometricService.getCredentials();
-    if (credentials?.token) {
-      setInjectedjs(
-        `window.localStorage.setItem('bioToken', '${credentials.token}'); true;`,
-      );
+  const clearWebTokens = () => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(`
+        window.dispatchEvent(new MessageEvent('message', {
+          data: ${JSON.stringify({ type: 'AUTH_FAILED' })}
+        }));
+        true;
+      `);
     }
   };
 
-  loadToken();
+  useEffect(() => {
+    const loadToken = async () => {
+      const credentials = await biometricService.getCredentials();
+      if (credentials?.token) {
+        setInjectedjs(
+          `window.localStorage.setItem('bioToken', '${credentials.token}'); true;`,
+        );
+      }
+    };
+    loadToken();
+  }, []);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
@@ -30,8 +45,25 @@ const WebViewScreen = ({ navigation }) => {
         return true;
       },
     );
-
     return () => backHandler.remove();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      'change',
+      async nextAppState => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === 'active'
+        ) {
+          await sessionService.reCheck(navigation, clearWebTokens);
+        }
+        setIsActive(nextAppState === 'active');
+        appState.current = nextAppState;
+      },
+    );
+
+    return () => subscription.remove();
   }, []);
 
   const handleWebViewMessage = async event => {
@@ -71,6 +103,7 @@ const WebViewScreen = ({ navigation }) => {
         injectedJavaScript={injectedjs}
         startInLoadingState
       />
+      {!isActive && <View style={styles.whiteOverlay} />}
     </View>
   );
 };
@@ -78,6 +111,11 @@ const WebViewScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   webview: { flex: 1 },
+  whiteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'white',
+    zIndex: 10,
+  },
 });
 
 export default WebViewScreen;

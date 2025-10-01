@@ -4,69 +4,56 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { sessionService } from '../services/sessionService';
 import { biometricService } from '../services/biometricService';
 
 const BiometricLogin = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [biometricInfo, setBiometricInfo] = useState({
-    available: false,
-    biometryType: null,
-  });
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometryType, setBiometryType] = useState(null);
 
   useEffect(() => {
     const init = async () => {
       const info = await biometricService.isBiometricAvailable();
-      setBiometricInfo(info);
+      setBiometricAvailable(info.available);
+      setBiometryType(info.biometryType);
 
       const credentials = await biometricService.getCredentials();
       setHasCredentials(!!credentials);
 
       if (info.available && credentials) {
-        const authenticated = await biometricService.authenticate();
-        if (authenticated && credentials?.token) {
-          navigation.replace('WebViewScreen', { bioToken: credentials.token });
-        }
+        const success = await sessionService.loginWithBiometrics(navigation);
+        if (!success) setLoading(false);
+        return;
       }
 
       setLoading(false);
     };
+
     init();
   }, []);
 
   const handleBiometricLogin = async () => {
-    setLoading(true);
-
     if (!hasCredentials) {
       Alert.alert(
-        'No Saved Credentials',
-        'Please login with Email & Password first.',
+        'No creds',
+        'pls login with email password',
       );
-      setLoading(false);
       return;
     }
 
-    const promptMessage =
-      biometricInfo.biometryType === 'FaceID'
-        ? 'Authenticate with Face ID'
-        : biometricInfo.biometryType === 'TouchID'
-        ? 'Authenticate with Touch ID'
-        : 'Authenticate';
-
-    const authenticated = await biometricService.authenticate(promptMessage);
-
-    if (authenticated) {
-      const credentials = await biometricService.getCredentials();
-      if (credentials?.token) {
-        navigation.replace('WebViewScreen', { bioToken: credentials.token });
-      }
-    } else {
-      Alert.alert('Authentication Failed', 'Please try again.');
+    setLoading(true);
+    const success = await sessionService.loginWithBiometrics(navigation);
+    if (!success) {
+      Alert.alert(
+        'auth failed',
+        'bio failed, try again.',
+      );
     }
-
     setLoading(false);
   };
 
@@ -85,16 +72,18 @@ const BiometricLogin = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Welcome</Text>
 
-      {biometricInfo.available && hasCredentials && (
+      {biometricAvailable && (
         <TouchableOpacity
           style={[styles.button, styles.biometricButton]}
           onPress={handleBiometricLogin}
         >
           <Text style={styles.buttonText}>
-            {biometricInfo.biometryType === 'FaceID'
-              ? 'Login with Face ID'
-              : biometricInfo.biometryType === 'TouchID'
-              ? 'Login with Touch ID'
+            {biometryType === 'Biometrics'
+              ? 'Login with Biometrics'
+              : biometryType === 'TouchID'
+              ? 'Login with TouchID'
+              : biometryType === 'FaceID'
+              ? 'Login with FaceID'
               : 'Login with Biometrics'}
           </Text>
         </TouchableOpacity>

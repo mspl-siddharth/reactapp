@@ -20,7 +20,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-r from-blue-100 to-purple-200 flex items-center justify-center">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          Dashboard
+          Dashboard {localStorage.getItem("bioToken") ? "bhetla" : "ny bhetla"}
         </h1>
         <div className="flex flex-col items-center">
           <h2 className="text-xl font-semibold text-gray-700 mb-6">
@@ -32,6 +32,14 @@ const Dashboard = () => {
           <p className="text-gray-500 mb-6">
             email: <span className="font-medium">{user?.email}</span>
           </p>
+          <button
+            onClick={() => {
+              navigate("/demo");
+            }}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-full shadow transition-all duration-300 my-6"
+          >
+            demo page
+          </button>
           <button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-full shadow transition-all duration-300"
