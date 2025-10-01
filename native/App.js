@@ -10,9 +10,10 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="BiometricLogin"
+        initialRouteName="SplashScreen"
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="SplashScreen" component={SplashScreen} />
         <Stack.Screen name="BiometricLogin" component={BiometricLogin} />
         <Stack.Screen name="WebViewScreen" component={WebViewScreen} />
       </Stack.Navigator>

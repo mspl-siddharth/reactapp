@@ -1,5 +1,5 @@
 const config = {
-  BASE_URL: 'http://192.168.10.113:3000',
+  BASE_URL: 'https://cptcodegen.mindstack.co.in/',
 };
 
 export default config;

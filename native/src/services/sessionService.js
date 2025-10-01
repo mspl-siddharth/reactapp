@@ -26,10 +26,10 @@ export const sessionService = {
     const authenticated = await biometricService.authenticate();
     if (!authenticated) {
       await biometricService.removeCredentials();
-      if (clearWebTokens) {
-        clearWebTokens();
-      }
-      navigation.replace('BiometricLogin');
+      // if (clearWebTokens) {
+      //   clearWebTokens();
+      // }
+      // navigation.replace('BiometricLogin');
       return false;
     }
     return true;
