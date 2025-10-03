@@ -1,17 +1,18 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, BackHandler, Alert, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { sessionService } from '../services/sessionService';
 import { biometricService } from '../services/biometricService';
 import config from '../../constant';
 
-const WebViewScreen = ({ navigation }) => {
+const WebViewScreen = ({ navigation, route }) => {
   const webViewRef = useRef(null);
   const [injectedjs, setInjectedjs] = useState('true;');
   const appState = useRef(AppState.currentState);
   const [isActive, setIsActive] = useState(AppState.currentState === 'active');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
-  const clearWebTokens = () => {
+  const clearWebTokens = useCallback(() => {
     if (webViewRef.current) {
       webViewRef.current.injectJavaScript(`
         window.dispatchEvent(new MessageEvent('message', {
@@ -20,18 +21,6 @@ const WebViewScreen = ({ navigation }) => {
         true;
       `);
     }
-  };
-
-  useEffect(() => {
-    const loadToken = async () => {
-      const credentials = await biometricService.getCredentials();
-      if (credentials?.token) {
-        setInjectedjs(
-          `window.localStorage.setItem('bioToken', '${credentials.token}'); true;`,
-        );
-      }
-    };
-    loadToken();
   }, []);
 
   useEffect(() => {
@@ -49,21 +38,38 @@ const WebViewScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    const handleAppStateChange = async nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active' &&
+        !isCheckingAuth
+      ) {
+        setIsCheckingAuth(true);
+        await sessionService.reCheck(navigation, clearWebTokens);
+        setIsCheckingAuth(false);
+      }
+
+      setIsActive(nextAppState === 'active');
+      appState.current = nextAppState;
+    };
+
     const subscription = AppState.addEventListener(
       'change',
-      async nextAppState => {
-        if (
-          appState.current.match(/inactive|background/) &&
-          nextAppState === 'active'
-        ) {
-          await sessionService.reCheck(navigation, clearWebTokens);
-        }
-        setIsActive(nextAppState === 'active');
-        appState.current = nextAppState;
-      },
+      handleAppStateChange,
     );
-
     return () => subscription.remove();
+  }, [navigation, clearWebTokens, isCheckingAuth]);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      const credentials = await biometricService.getCredentials();
+      if (credentials?.token) {
+        setInjectedjs(
+          `window.localStorage.setItem('bioToken', '${credentials.token}'); true;`,
+        );
+      }
+    };
+    loadToken();
   }, []);
 
   const handleWebViewMessage = async event => {
@@ -75,6 +81,7 @@ const WebViewScreen = ({ navigation }) => {
           user: data.user,
           token: data.token,
         });
+
         Alert.alert(
           'Login Successful',
           'You can now use biometric login next time.',

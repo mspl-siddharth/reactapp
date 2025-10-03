@@ -16,18 +16,19 @@ export const biometricService = {
 
   async authenticate(promptMessage = 'Authenticate to continue') {
     try {
-      const { success } = await rnBiometrics.simplePrompt({
+      const { success, error } = await rnBiometrics.simplePrompt({
         promptMessage,
         cancelButtonText: 'Cancel',
       });
-      if (!success) return false;
 
-      const credentials = await AsyncStorage.getItem('user_credentials');
-      return !!credentials;
+      return {
+        success,
+        cancelled:
+          error?.includes('User cancellation') || error?.includes('Cancel'),
+      };
     } catch (error) {
-      await AsyncStorage.clear();
       console.error('Biometric authentication error:', error);
-      return false;
+      return { success: false, cancelled: false, error: error.message };
     }
   },
 

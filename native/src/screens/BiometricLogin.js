@@ -18,46 +18,49 @@ const BiometricLogin = ({ navigation }) => {
 
   useEffect(() => {
     const init = async () => {
-      const info = await biometricService.isBiometricAvailable();
-      setBiometricAvailable(info.available);
-      setBiometryType(info.biometryType);
+      try {
+        const info = await biometricService.isBiometricAvailable();
+        setBiometricAvailable(info.available);
+        setBiometryType(info.biometryType);
 
-      const credentials = await biometricService.getCredentials();
-      setHasCredentials(!!credentials);
+        const credentials = await biometricService.getCredentials();
+        setHasCredentials(!!credentials);
 
-      if (info.available && credentials) {
-        const success = await sessionService.loginWithBiometrics(navigation);
-        if (!success) setLoading(false);
-        return;
+        setLoading(false);
+      } catch (error) {
+        console.error('Init error:', error);
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     init();
-  }, []);
+  }, [navigation]);
 
   const handleBiometricLogin = async () => {
     if (!hasCredentials) {
       Alert.alert(
-        'No creds',
-        'pls login with email password',
+        'No Credentials',
+        'Please login with email and password first to enable biometric login',
+        [{ text: 'OK' }],
       );
       return;
     }
 
     setLoading(true);
-    const success = await sessionService.loginWithBiometrics(navigation);
-    if (!success) {
-      Alert.alert(
-        'auth failed',
-        'bio failed, try again.',
-      );
+    try {
+      await sessionService.loginWithBiometrics(navigation);
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred during authentication', [
+        { text: 'OK' },
+      ]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const handleWebViewLogin = () => navigation.replace('WebViewScreen');
+  const handleWebViewLogin = () => {
+    navigation.replace('WebViewScreen');
+  };
 
   if (loading) {
     return (
@@ -72,18 +75,27 @@ const BiometricLogin = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Welcome</Text>
 
-      {biometricAvailable && (
+      {hasCredentials && (
+        <Text style={styles.subtitle}>Biometric login is available</Text>
+      )}
+
+      {!hasCredentials && (
+        <Text style={styles.subtitle}>
+          Login with email and password to enable biometric login
+        </Text>
+      )}
+
+      {biometricAvailable && hasCredentials && (
         <TouchableOpacity
           style={[styles.button, styles.biometricButton]}
           onPress={handleBiometricLogin}
+          disabled={loading}
         >
           <Text style={styles.buttonText}>
-            {biometryType === 'Biometrics'
-              ? 'Login with Biometrics'
-              : biometryType === 'TouchID'
-              ? 'Login with TouchID'
+            {biometryType === 'TouchID'
+              ? 'Login with Touch ID'
               : biometryType === 'FaceID'
-              ? 'Login with FaceID'
+              ? 'Login with Face ID'
               : 'Login with Biometrics'}
           </Text>
         </TouchableOpacity>
@@ -92,9 +104,20 @@ const BiometricLogin = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.button, styles.webviewButton]}
         onPress={handleWebViewLogin}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Login with Email & Password</Text>
+        <Text style={styles.buttonText}>
+          {hasCredentials
+            ? 'Login with Email & Password'
+            : 'Login with Email & Password'}
+        </Text>
       </TouchableOpacity>
+
+      {hasCredentials && (
+        <Text style={styles.note}>
+          Note: Cancelling biometric will bring you back to this screen
+        </Text>
+      )}
     </View>
   );
 };
@@ -107,7 +130,18 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   button: {
     width: '100%',
     padding: 15,
@@ -115,10 +149,29 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     alignItems: 'center',
   },
-  biometricButton: { backgroundColor: '#007AFF' },
-  webviewButton: { backgroundColor: '#34C759' },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' },
-  loadingText: { marginTop: 20, fontSize: 16, color: '#666' },
+  biometricButton: {
+    backgroundColor: '#007AFF',
+  },
+  webviewButton: {
+    backgroundColor: '#34C759',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666',
+  },
+  note: {
+    marginTop: 20,
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
 });
 
 export default BiometricLogin;

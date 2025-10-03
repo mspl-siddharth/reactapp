@@ -2,36 +2,76 @@ import { biometricService } from './biometricService';
 
 export const sessionService = {
   async loginWithBiometrics(navigation) {
-    const info = await biometricService.isBiometricAvailable();
-    if (!info.available) return false;
+    try {
+      const info = await biometricService.isBiometricAvailable();
+      if (!info.available) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
 
-    const credentials = await biometricService.getCredentials();
-    if (!credentials?.token) return false;
+      const credentials = await biometricService.getCredentials();
+      if (!credentials?.token) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
 
-    const authenticated = await biometricService.authenticate();
-    if (authenticated) {
-      navigation.replace('WebViewScreen', { bioToken: credentials.token });
-      return true;
+      const authResult = await biometricService.authenticate();
+
+      if (authResult.success) {
+        navigation.replace('WebViewScreen', { bioToken: credentials.token });
+        return true;
+      }
+
+      if (authResult.cancelled) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
+
+      await biometricService.removeCredentials();
+      navigation.replace('BiometricLogin');
+      return false;
+    } catch (error) {
+      console.error('Biometric login error:', error);
+      navigation.replace('BiometricLogin');
+      return false;
     }
-    return false;
   },
 
   async reCheck(navigation, clearWebTokens) {
-    const credentials = await biometricService.getCredentials();
-    if (!credentials?.token) return false;
+    try {
+      const credentials = await biometricService.getCredentials();
+      if (!credentials?.token) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
 
-    const info = await biometricService.isBiometricAvailable();
-    if (!info.available) return false;
+      const info = await biometricService.isBiometricAvailable();
+      if (!info.available) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
 
-    const authenticated = await biometricService.authenticate();
-    if (!authenticated) {
+      const authResult = await biometricService.authenticate();
+
+      if (authResult.success) {
+        return true;
+      }
+
+      if (authResult.cancelled) {
+        navigation.replace('BiometricLogin');
+        return false;
+      }
+
       await biometricService.removeCredentials();
-      // if (clearWebTokens) {
-      //   clearWebTokens();
-      // }
-      // navigation.replace('BiometricLogin');
+      if (clearWebTokens) {
+        clearWebTokens();
+      }
+      navigation.replace('BiometricLogin');
+      return false;
+    } catch (error) {
+      await biometricService.removeCredentials();
+      navigation.replace('BiometricLogin');
       return false;
     }
-    return true;
   },
 };
